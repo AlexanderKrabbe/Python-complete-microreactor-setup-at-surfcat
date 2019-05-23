@@ -34,7 +34,7 @@ class PlottingDataMonitor(QMainWindow):
         super(PlottingDataMonitor, self).__init__(parent)
 #setting the path variable for icon
         self.setWindowTitle('Surfcat \u03BC-reactor monitor')
-        self.setWindowIcon(QIcon('noxoff_logo_stor.png'))
+        self.setWindowIcon(QIcon('Surfcat_logo_Alexander.pdf'))
         self.resize(800, 600)
 
         self.port           = ""
