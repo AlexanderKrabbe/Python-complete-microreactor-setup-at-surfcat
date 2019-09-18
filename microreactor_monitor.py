@@ -22,7 +22,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from com_monitor import ComMonitorThread
+from socket_monitor import SocketThread
 from globals import *
 #import pymysql as sql
 
@@ -40,9 +40,9 @@ class PlottingDataMonitor(QMainWindow):
         self.port           = ""
         self.baudrate       = 9600
         self.monitor_active = False                 # on/off monitor state
-        self.com_monitor    = None                  # monitor reception thread
-        self.com_data_q     = None
-        self.com_error_q    = None
+        self.LiveValue_monitor    = None                  # monitor reception thread
+        self.LiveValue_data_q     = None
+        self.LiveValue_error_q    = None
         self.livefeed       = LiveDataFeed()
         self.timer          = QTimer()
         self.g_samples      = [[], [], []]
@@ -64,67 +64,71 @@ class PlottingDataMonitor(QMainWindow):
 #                    self.OnStart)
 #        self.connect(self.button_Disconnect, SIGNAL("clicked()"),
 #                    self.OnStop)
-        self.CSVfilename.returnPressed.connect(self.button_Connect.click)
+#        self.CSVfilename.returnPressed.connect(self.button_Connect.click)
 #        self.OnStart()
 
     #----------------------------------------------------------
 
 
-    def create_com_box(self):
+    def create_LiveValueBox(self):
         """
-        Purpose:   create the serial com groupbox
-        Return:    return a layout of the serial com
+        Purpose:   create groupbox for live values
+        Return:    return a layout of the values to be shown
         """
-        self.com_box = QGroupBox("COM Configuration")
+        self.LiveValueBox = QGroupBox("Live Values Box")
 
-        com_layout = QGridLayout()
+        LiveValue_layout = QGridLayout()
 
-        self.radio9600     =    QRadioButton("9600")
-        self.radio9600.setChecked(1)
-        self.radio19200    =    QRadioButton("19200") #Select if 19200 is necessary
-        self.Com_ComboBox  =    QComboBox()
-        self.CSVfilename = QLineEdit()
-        self.CSVfilename.setPlaceholderText('Enter Filename Here')
-        self.Start_time = QLineEdit()
-        self.Start_time.setPlaceholderText('Start x-axis [s]')
-        self.End_time = QLineEdit()
-        self.End_time.setPlaceholderText('End x-axis [s]')
+#        self.radio9600     =    QRadioButton("9600")
+#        self.radio9600.setChecked(1)
+#        self.radio19200    =    QRadioButton("19200") #Select if 19200 is necessary
+#        self.LiveValue_ComboBox  =    QComboBox()
+#        self.CSVfilename = QLineEdit()
+#        self.CSVfilename.setPlaceholderText('Enter Filename Here')
+#        self.Start_time = QLineEdit()
+#        self.Start_time.setPlaceholderText('Start x-axis [s]')
+#        self.End_time = QLineEdit()
+#        self.End_time.setPlaceholderText('End x-axis [s]')
 
-        com_layout.addWidget(self.Com_ComboBox,0,0,1,2)
-        com_layout.addWidget(self.CSVfilename,1,0,1,4)
-#        com_layout.addWidget(self.Start_time,0,2,1,1)
-#        com_layout.addWidget(self.End_time,0,3,1,1)
-        com_layout.addWidget(self.radio9600,0,2)
-        com_layout.addWidget(self.radio19200,0,3) #Select if 19200 is necessary
-        self.fill_ports_combobox()
+#        LiveValue_layout.addWidget(self.LiveValue_ComboBox,0,0,1,2)
+#        LiveValue_layout.addWidget(self.CSVfilename,1,0,1,4)
+#        LiveValue_layout.addWidget(self.Start_time,0,2,1,1)
+#        LiveValue_layout.addWidget(self.End_time,0,3,1,1)
+#        LiveValue_layout.addWidget(self.radio9600,0,2)
+#        LiveValue_layout.addWidget(self.radio19200,0,3) #Select if 19200 is necessary
+#        self.fill_ports_combobox()
 
 
         self.button_Connect      =   QPushButton("Start")
         self.button_Disconnect   =   QPushButton("Stop")
         self.button_Disconnect.setEnabled(False)
 
-        com_layout.addWidget(self.button_Connect,0,4,1,2)
-        com_layout.addWidget(self.button_Disconnect,1,4,1,2)
+        LiveValue_layout.addWidget(self.button_Connect,0,0,1,2)
+        LiveValue_layout.addWidget(self.button_Disconnect,1,0,1,2)
 
-        self.LiveValuesCom =   [self.create_LiveValues_box('NO'),
-                                self.create_LiveValues_box('NO2'),
-                                self.create_LiveValues_box('NOx')
+        self.LiveValuesCom =   [self.create_LiveValues_box('Main'),
+                                self.create_LiveValues_box('Containment'),
+                                self.create_LiveValues_box('Reactor'),
+                                self.create_LiveValues_box('Buffer')
                                 ]
 
-        com_layout.addWidget(self.LiveValuesCom[0],0,6,1,1)
-        com_layout.addWidget(self.LiveValuesCom[1],0,7,1,1)
-        com_layout.addWidget(self.LiveValuesCom[2],0,8,1,1)
+        LiveValue_layout.addWidget(self.LiveValuesCom[0],0,2,1,1)
+        LiveValue_layout.addWidget(self.LiveValuesCom[1],0,3,1,1)
+        LiveValue_layout.addWidget(self.LiveValuesCom[2],0,4,1,1)
+        LiveValue_layout.addWidget(self.LiveValuesCom[3],0,5,1,1)
 
-        self.gCheckBoxCom =   [self.create_checkbox("NO", Qt.green, self.activate_curve, 0),
-                               self.create_checkbox('NO2', Qt.red, self.activate_curve, 1),
-                               self.create_checkbox("NOx", Qt.blue, self.activate_curve, 2)
+        self.gCheckBoxCom =   [self.create_checkbox("Main", Qt.green, self.activate_curve, 0),
+                               self.create_checkbox("Containment", Qt.red, self.activate_curve, 1),
+                               self.create_checkbox("Reactor", Qt.blue, self.activate_curve, 2),
+                               self.create_checkbox("Buffer", Qt.yellow, self.activate_curve, 3)
                               ]
 
-        com_layout.addWidget(self.gCheckBoxCom[0],1,6)
-        com_layout.addWidget(self.gCheckBoxCom[1],1,7)
-        com_layout.addWidget(self.gCheckBoxCom[2],1,8)
+        LiveValue_layout.addWidget(self.gCheckBoxCom[0],1,2)
+        LiveValue_layout.addWidget(self.gCheckBoxCom[1],1,3)
+        LiveValue_layout.addWidget(self.gCheckBoxCom[2],1,4)
+        LiveValue_layout.addWidget(self.gCheckBoxCom[3],1,5)
 
-        return com_layout
+        return LiveValue_layout
     #---------------------------------------------------------------------
 
 
@@ -211,8 +215,8 @@ class PlottingDataMonitor(QMainWindow):
         Purpose:    create the main frame Qt widget
         """
         # Serial communication combo box
-        portname_layout = self.create_com_box()
-        self.com_box.setLayout(portname_layout)
+        portname_layout = self.create_LiveValueBox()
+        self.LiveValueBox.setLayout(portname_layout)
 
         # Update speed knob
 #        self.updatespeed_knob = self.create_knob()
@@ -242,7 +246,7 @@ class PlottingDataMonitor(QMainWindow):
 #        self.LiveValues =   [   self.create_LiveValues_box('NO'),
 #                                self.create_LiveValues_box('NO2'),
 #                                self.create_LiveValues_box('NOx')
-#                            ] 
+#                            ]
 
 
 
@@ -272,7 +276,7 @@ class PlottingDataMonitor(QMainWindow):
         # Place the main frame and layout
         self.main_frame = QWidget()
         main_layout     = QGridLayout()
-        main_layout.addWidget(self.com_box,0,0,1,1)
+        main_layout.addWidget(self.LiveValueBox,0,0,1,1)
         main_layout.addWidget(plot_groupbox,1,0,8,1)
         self.main_frame.setLayout(main_layout)
 
@@ -362,10 +366,10 @@ class PlottingDataMonitor(QMainWindow):
         """ Purpose: rescan the serial port com and update the combobox
         """
         vNbCombo = ""
-        self.Com_ComboBox.clear()
+        self.LiveValue_ComboBox.clear()
         self.AvailablePorts = enumerate_serial_ports()
         for value in self.AvailablePorts:
-            self.Com_ComboBox.addItem(value)
+            self.LiveValue_ComboBox.addItem(value)
             vNbCombo += value + " - "
         vNbCombo = vNbCombo[:-3]
 
@@ -374,7 +378,7 @@ class PlottingDataMonitor(QMainWindow):
 
 
     def OnStart(self):
-        """ Start the monitor: com_monitor thread and the update timer
+        """ Start the monitor: LiveValue_monitor thread and the update timer
             IF and ONLY if filename is uniqe
         """
 #        is_filename_uniqe = self.CSVfilename.text() +'.csv'
@@ -399,7 +403,7 @@ class PlottingDataMonitor(QMainWindow):
             elif not os.path.isfile(self.CSVfilename.text() +'.csv'):
                 self.StartIfFileNameIsUniqe()
                 break
-#        elif:    
+#        elif:
 #            self.StartIfFileNameIsUniqe()
 
 
@@ -418,27 +422,27 @@ class PlottingDataMonitor(QMainWindow):
 
 
 
-        vNbCombo    = self.Com_ComboBox.currentIndex()
+        vNbCombo    = self.LiveValue_ComboBox.currentIndex()
         self.port   = self.AvailablePorts[vNbCombo]
 
         self.button_Connect.setEnabled(False)
         self.button_Disconnect.setEnabled(True)
-        self.Com_ComboBox.setEnabled(False)
+        self.LiveValue_ComboBox.setEnabled(False)
         self.data_q      =  queue.Queue()
         self.error_q     =  queue.Queue()
-        self.com_monitor =  ComMonitorThread(
+        self.LiveValue_monitor =  ComMonitorThread(
                                             self.data_q,
                                             self.error_q,
                                             self.port,
                                             self.baudrate)
 
-        self.com_monitor.start()
+        self.LiveValue_monitor.start()
 #        print(self.data_q)
-        com_error = get_item_from_queue(self.error_q)
-        if com_error is not None:
+        LiveValue_error = get_item_from_queue(self.error_q)
+        if LiveValue_error is not None:
             QMessageBox.critical(self, 'ComMonitorThread error',
-                com_error)
-            self.com_monitor = None
+                LiveValue_error)
+            self.LiveValue_monitor = None
 
         self.monitor_active = True
         getattr(self.timer,"timeout").connect(self.on_timer)
@@ -459,16 +463,16 @@ class PlottingDataMonitor(QMainWindow):
         """ Stop the monitor
         """
         #print("stopping")
-        if self.com_monitor is not None:
-            #print('self.com_monitor not NOne')
-            #self.com_monitor.join(1000)
-            self.com_monitor = None
+        if self.LiveValue_monitor is not None:
+            #print('self.LiveValue_monitor not NOne')
+            #self.LiveValue_monitor.join(1000)
+            self.LiveValue_monitor = None
         #print("still stopping")
         self.CSVfilename.setEnabled(True)
         self.monitor_active = False
         self.button_Connect.setEnabled(True)
         self.button_Disconnect.setEnabled(False)
-        self.Com_ComboBox.setEnabled(True)
+        self.LiveValue_ComboBox.setEnabled(True)
         self.timer.stop()
         self.status_text.setText('Monitor idle')
         ## Close CSV file
@@ -566,7 +570,7 @@ class PlottingDataMonitor(QMainWindow):
             debug("ydata", data[1])
             debug("tdata", data[2])
             """
-######### Start og Slut x-tid #######            
+######### Start og Slut x-tid #######
             try:
                 self.start_time = int(self.Start_time.text())
             except:
@@ -581,7 +585,7 @@ class PlottingDataMonitor(QMainWindow):
             if self.end_time > tdata[-1] or self.end_time < self.start_time or self.end_time < 1:
                 self.end_time = tdata[-1]
 #            print(self.start_time)
-#            print(self.end_time)            
+#            print(self.end_time)
             self.plot.setAxisScale(Qwt.QwtPlot.xBottom, self.start_time, max(5, self.end_time) )
 
             self.plot.replot()
